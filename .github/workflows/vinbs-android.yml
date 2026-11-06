@@ -27,6 +27,9 @@ jobs:
 
   build-android:
     needs: [generate-bridge]
+    # bridge.yml also builds a Flutter 3.44 bridge that Android does not use, so a failure there
+    # must not skip this job. A failed 3.24 bridge still stops it at "Restore bridge files".
+    if: ${{ !cancelled() }}
     name: build arm64 apk
     runs-on: ubuntu-24.04
     steps:
