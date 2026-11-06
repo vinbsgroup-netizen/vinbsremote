@@ -2,7 +2,8 @@
 # Renames the stock rustdesk deb to match APP_NAME: the Linux code builds its systemctl calls,
 # process lookups and desktop file names from that name, so a package still called rustdesk would
 # leave them pointing at nothing. Icons keep their name because flutter/linux/my_application.cc
-# loads "rustdesk" from the icon theme.
+# loads "rustdesk" from the icon theme. /usr/lib/rustdesk stays too: drmtap_dl.rs loads libdrmtap
+# from that absolute path.
 set -euo pipefail
 
 src=$1

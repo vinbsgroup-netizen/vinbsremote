@@ -109,7 +109,24 @@ jobs:
           name: bridge-artifact
           path: ./
 
-      # Built in an Ubuntu 18.04 container so the package also runs on older glibc.
+      # The container's meson is too old to build libdrmtap, so build it here from the pin in
+      # build.py and hand the .so to the container below via DRMTAP_PREBUILT_DIR.
+      - name: Build libdrmtap
+        run: |
+          sudo apt-get install -y meson ninja-build pkg-config \
+            libdrm-dev libegl1-mesa-dev libgles2-mesa-dev
+          python3 - <<'PY'
+          import importlib.util, sys
+          spec = importlib.util.spec_from_file_location("b", "build.py")
+          b = importlib.util.module_from_spec(spec)
+          sys.argv = ["build.py"]
+          spec.loader.exec_module(b)
+          print(f"::notice::built {b.build_libdrmtap_so()}")
+          PY
+        shell: bash
+
+      # Built in an Ubuntu 18.04 container for an old glibc floor. libdrmtap comes from the newer
+      # runner above, so build.py measures the floor from it and writes it into the deb's Depends.
       - uses: rustdesk-org/run-on-arch-action@d3fcfbb632b84cf7f6bc772bfaaa2c2f4f8789a8 # no release tag; commit 2026-05-26
         name: Build deb
         with:
@@ -170,7 +187,11 @@ jobs:
             """ > ~/.cargo/config
             pushd /workspace
             export VCPKG_ROOT=/opt/artifacts/vcpkg
-            cargo build --locked --lib --features hwcodec,flutter,unix-file-copy-paste --release
+            # The drm backend captures Wayland without the portal's share prompt, so a peer can be
+            # reached with its ID and password when nobody is at the machine.
+            export DRMTAP_PREBUILT_DIR=/workspace/third_party/libdrmtap/build-pkg
+            FEATURES=$(python3 ./build.py --flutter --drm --hwcodec --unix-file-copy-paste --print-features)
+            cargo build --locked --lib --features "$FEATURES" --release
             rm -rf target/release/deps target/release/build
             rm -rf ~/.cargo
 
@@ -186,8 +207,30 @@ jobs:
             pushd /workspace
             export CARGO_INCREMENTAL=0
             export DEB_ARCH=amd64
-            python3 ./build.py --flutter --skip-cargo
-            bash ./res/vinbs-deb-rename.sh rustdesk-${{ env.VERSION }}.deb vinbs-remote-desktop-${{ env.VERSION }}-x86_64.deb
+            python3 ./build.py --flutter --drm --hwcodec --unix-file-copy-paste --skip-cargo
+            bash ./res/vinbs-deb-rename.sh rustdesk-unattended-wayland-${{ env.VERSION }}.deb vinbs-remote-desktop-${{ env.VERSION }}-x86_64.deb
+
+      # A deb missing the library still installs and runs, then falls back to the portal prompt with
+      # no error, so check the artifact before it replaces the published one.
+      - name: Check the deb is a drm build
+        run: |
+          set -euo pipefail
+          deb=vinbs-remote-desktop-${{ env.VERSION }}-x86_64.deb
+          contents="$(dpkg -c "$deb")"
+          if [[ ! "$contents" =~ usr/lib/rustdesk/libdrmtap\.so\.0\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::$deb has no versioned libdrmtap.so.0.x.y"
+            exit 1
+          fi
+          if [[ "$contents" != *"usr/lib/rustdesk/libdrmtap.so.0 ->"* ]]; then
+            echo "::error::$deb has no libdrmtap.so.0 soname symlink"
+            exit 1
+          fi
+          rm -rf /tmp/deb && dpkg-deb -R "$deb" /tmp/deb
+          if ! grep -qF /usr/lib/rustdesk/libdrmtap.so.0 /tmp/deb/usr/share/vinbsremote/lib/librustdesk.so; then
+            echo "::error::$deb was not built with the drm feature"
+            exit 1
+          fi
+        shell: bash
 
       - name: Publish deb
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
