@@ -1,4 +1,5 @@
-# Builds the VinBS Remote Desktop arm64 APK and publishes it to the android-latest pre-release.
+# Builds the VinBS Remote Desktop APKs (arm64 for phones, x86_64 for emulators) and publishes them
+# to the android-latest pre-release.
 # The build steps follow build-rustdesk-android in flutter-build.yml; keep the pinned versions in sync.
 name: VinBS Android
 
@@ -19,7 +20,6 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
   VERSION: "1.5.1"
-  TARGET: aarch64-linux-android
 
 jobs:
   generate-bridge:
@@ -30,8 +30,26 @@ jobs:
     # bridge.yml also builds a Flutter 3.44 bridge that Android does not use, so a failure there
     # must not skip this job. A failed 3.24 bridge still stops it at "Restore bridge files".
     if: ${{ !cancelled() }}
-    name: build arm64 apk
+    name: build ${{ matrix.job.suffix }} apk
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - {
+              target: aarch64-linux-android,
+              abi: arm64-v8a,
+              ndk-script: ndk_arm64.sh,
+              flutter-platform: android-arm64,
+              suffix: arm64,
+            }
+          - {
+              target: x86_64-linux-android,
+              abi: x86_64,
+              ndk-script: ndk_x64.sh,
+              flutter-platform: android-x64,
+              suffix: x86_64,
+            }
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -117,7 +135,7 @@ jobs:
       - name: Install vcpkg dependencies
         shell: bash
         run: |
-          if ! ./flutter/build_android_deps.sh arm64-v8a; then
+          if ! ./flutter/build_android_deps.sh ${{ matrix.job.abi }}; then
             find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
               echo "$_1:"
               echo "======"
@@ -143,16 +161,16 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           prefix-key: vinbs-android
-          key: ${{ env.TARGET }}
+          key: ${{ matrix.job.target }}
 
       - name: Build rustdesk lib
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
-          rustup target add ${{ env.TARGET }}
+          rustup target add ${{ matrix.job.target }}
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
-          ./flutter/ndk_arm64.sh
+          ./flutter/${{ matrix.job.ndk-script }}
 
       - name: Build apk
         shell: bash
@@ -164,18 +182,18 @@ jobs:
           sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
           # Signed with the runner's debug key here; the release key stays off GitHub and is applied after download.
           sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
-          JNI=./flutter/android/app/src/main/jniLibs/arm64-v8a
+          JNI=./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}
           mkdir -p "$JNI"
-          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so "$JNI/"
-          cp ./target/${{ env.TARGET }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
+          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.target }}/libc++_shared.so "$JNI/"
+          cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
           pushd flutter
-          flutter build apk --release --target-platform android-arm64 --split-per-abi
+          flutter build apk --release --target-platform ${{ matrix.job.flutter-platform }} --split-per-abi
           popd
-          mv flutter/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk vinbs-remote-desktop-${{ env.VERSION }}-arm64.apk
+          mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk vinbs-remote-desktop-${{ env.VERSION }}-${{ matrix.job.suffix }}.apk
 
       - name: Publish apk
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
           tag_name: android-latest
-          files: vinbs-remote-desktop-${{ env.VERSION }}-arm64.apk
+          files: vinbs-remote-desktop-${{ env.VERSION }}-${{ matrix.job.suffix }}.apk
