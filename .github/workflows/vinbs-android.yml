@@ -187,9 +187,18 @@ jobs:
           cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.target }}/libc++_shared.so "$JNI/"
           cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so "$JNI/librustdesk.so"
           pushd flutter
-          flutter build apk --release --target-platform ${{ matrix.job.flutter-platform }} --split-per-abi
+          flutter build apk --release --target-platform ${{ matrix.job.flutter-platform }} --split-per-abi 2>&1 | tee ../apk-build-${{ matrix.job.suffix }}.log
           popd
           mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk vinbs-remote-desktop-${{ env.VERSION }}-${{ matrix.job.suffix }}.apk
+
+      # Job logs need a GitHub login, a release asset does not.
+      - name: Publish build log on failure
+        if: failure()
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          prerelease: true
+          tag_name: android-build-logs
+          files: apk-build-${{ matrix.job.suffix }}.log
 
       - name: Publish apk
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
