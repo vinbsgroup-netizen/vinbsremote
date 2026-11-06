@@ -57,6 +57,13 @@ pub const PORTABLE_APPNAME_RUNTIME_ENV_KEY: &str = "RUSTDESK_APPNAME";
 // commands and into the URI scheme.
 pub const APP_DISPLAY_NAME: &str = "VinBS Remote Desktop";
 
+pub const VINBS_SERVER: &str = "rd.vi-sos.com";
+pub const VINBS_SERVER_KEY: &str = "6zPMRBIWwnLNJ7BrFyfp7v7liJmjWbULzIF99PSu4vE=";
+// The upstream update request carries a device id that decodes back to the MAC address and ID.
+const UPSTREAM_UPDATE_CHECK: bool = false;
+// The IPv6 probe has no setting of its own and sends to public STUN servers on every NAT test.
+const PUBLIC_STUN_PROBE: bool = false;
+
 pub const PLATFORM_WINDOWS: &str = "Windows";
 pub const PLATFORM_LINUX: &str = "Linux";
 pub const PLATFORM_MACOS: &str = "Mac OS";
@@ -1181,6 +1188,9 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
 // Because the url is always `https://api.rustdesk.com/version/latest`.
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+    if !UPSTREAM_UPDATE_CHECK {
+        return Ok(());
+    }
     let (request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
     let proxy_conf = Config::get_socks();
@@ -2510,7 +2520,23 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
     ThrottledInterval::new(i)
 }
 
+pub fn apply_vinbs_server_config() {
+    let mut settings = config::OVERWRITE_SETTINGS.write().unwrap();
+    settings.insert(
+        keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
+        VINBS_SERVER.to_owned(),
+    );
+    settings.insert(keys::OPTION_RELAY_SERVER.to_owned(), VINBS_SERVER.to_owned());
+    settings.insert(keys::OPTION_KEY.to_owned(), VINBS_SERVER_KEY.to_owned());
+    // Any stun: entry stops the default third-party STUN servers from being added.
+    settings.insert(
+        keys::OPTION_ICE_SERVERS.to_owned(),
+        format!("stun:{VINBS_SERVER}:21116"),
+    );
+}
+
 pub fn load_custom_client() {
+    apply_vinbs_server_config();
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
@@ -2804,6 +2830,9 @@ async fn test_bind_ipv6() -> ResultType<SocketAddr> {
 }
 
 pub async fn test_ipv6() -> Option<tokio::task::JoinHandle<()>> {
+    if !PUBLIC_STUN_PROBE {
+        return None;
+    }
     {
         // One look and one claim of the minute, under one lock: two connections arriving
         // together would otherwise both find it over and both probe.

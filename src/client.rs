@@ -472,7 +472,9 @@ impl Client {
         } else {
             (peer, "", key, token)
         };
-        let (rendezvous_server, servers, contained) = if other_server.is_empty() {
+        let (rendezvous_server, servers, contained) = if other_server.is_empty()
+            || other_server == PUBLIC_SERVER
+        {
             crate::get_rendezvous_server(1_000).await
         } else {
             if other_server == PUBLIC_SERVER {
@@ -2925,7 +2927,7 @@ impl LoginConfigHandler {
             let server = server_key.next().unwrap_or_default();
             let args = server_key.next().unwrap_or_default();
             let key = if server == PUBLIC_SERVER {
-                config::RS_PUB_KEY.to_owned()
+                crate::common::VINBS_SERVER_KEY.to_owned()
             } else {
                 let mut args_map: HashMap<String, &str> = HashMap::new();
                 for arg in args.split('&') {
