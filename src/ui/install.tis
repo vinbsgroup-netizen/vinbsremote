@@ -50,7 +50,7 @@ class Install: Reactor.Component {
     }
 
     event click $(#agreement) {
-        view.open_url("http://rustdesk.com/privacy");
+        view.open_url("https://vi-sos.com/remote-desktop/dieu-khoan#quyen-rieng-tu");
     }
 
     event click $(#submit) {

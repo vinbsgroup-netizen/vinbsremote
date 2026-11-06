@@ -53,6 +53,10 @@ pub type NotifyMessageBox = fn(String, String, String, String) -> dyn Future<Out
 // the executable name of the portable version
 pub const PORTABLE_APPNAME_RUNTIME_ENV_KEY: &str = "RUSTDESK_APPNAME";
 
+// Shown to users only. APP_NAME must stay space-free: it goes unquoted into `sc` and `taskkill`
+// commands and into the URI scheme.
+pub const APP_DISPLAY_NAME: &str = "VinBS Remote Desktop";
+
 pub const PLATFORM_WINDOWS: &str = "Windows";
 pub const PLATFORM_LINUX: &str = "Linux";
 pub const PLATFORM_MACOS: &str = "Mac OS";

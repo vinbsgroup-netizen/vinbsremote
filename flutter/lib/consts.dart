@@ -722,3 +722,9 @@ extension WindowsTargetExt on int {
 }
 
 const kCheckSoftwareUpdateFinish = 'check_software_update_finish';
+
+const String kAppDisplayName = 'VinBS Remote Desktop';
+const String kAppDeveloper = 'Công ty TNHH Công Nghệ Và Phần Mềm Dinos (VINBS)';
+const String kAppWebsite = 'https://vi-sos.com/remote-desktop';
+const String kAppTermsUrl = 'https://vi-sos.com/remote-desktop/dieu-khoan';
+const String kAppPrivacyUrl = 'https://vi-sos.com/remote-desktop/dieu-khoan#quyen-rieng-tu';

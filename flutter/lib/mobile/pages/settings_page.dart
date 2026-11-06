@@ -38,7 +38,7 @@ class SettingsPage extends StatefulWidget implements PageShape {
   State<SettingsPage> createState() => _SettingsState();
 }
 
-const url = 'https://rustdesk.com/';
+const url = kAppWebsite;
 
 enum KeepScreenOn {
   never,
@@ -1066,7 +1066,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 title: Text(translate("Version: ") + version),
                 value: Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('rustdesk.com',
+                  child: Text('vi-sos.com',
                       style: TextStyle(
                         decoration: TextDecoration.underline,
                       )),
@@ -1098,10 +1098,19 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 leading: Icon(Icons.perm_identity)),
             SettingsTile(
               title: Text(translate("Privacy Statement")),
-              onPressed: (context) =>
-                  launchUrlString('https://rustdesk.com/privacy.html'),
+              onPressed: (context) => launchUrlString(kAppPrivacyUrl),
               leading: Icon(Icons.privacy_tip),
-            )
+            ),
+            SettingsTile(
+              title: Text('Điều khoản sử dụng'),
+              onPressed: (context) => launchUrlString(kAppTermsUrl),
+              leading: Icon(Icons.gavel),
+            ),
+            SettingsTile(
+              title: Text('Đơn vị phát triển'),
+              value: Text(kAppDeveloper),
+              leading: Icon(Icons.business),
+            ),
           ],
         ),
       ],
@@ -1212,12 +1221,12 @@ void showAbout(OverlayDialogManager dialogManager) {
         Text('Version: $version'),
         InkWell(
             onTap: () async {
-              const url = 'https://rustdesk.com/';
+              const url = kAppWebsite;
               await launchUrl(Uri.parse(url));
             },
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('rustdesk.com',
+              child: Text('vi-sos.com',
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                   )),

@@ -2617,7 +2617,7 @@ class _AboutState extends State<_About> {
                       .marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
+                    launchUrlString(kAppPrivacyUrl);
                   },
                   child: Text(
                     translate('Privacy Statement'),
@@ -2625,12 +2625,22 @@ class _AboutState extends State<_About> {
                   ).marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com');
+                    launchUrlString(kAppWebsite);
                   },
                   child: Text(
                     translate('Website'),
                     style: linkStyle,
                   ).marginSymmetric(vertical: 4.0)),
+              InkWell(
+                  onTap: () {
+                    launchUrlString(kAppTermsUrl);
+                  },
+                  child: Text(
+                    'Điều khoản sử dụng',
+                    style: linkStyle,
+                  ).marginSymmetric(vertical: 4.0)),
+              const SelectionArea(
+                  child: Text('Phát triển bởi: $kAppDeveloper')),
               Container(
                 decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
                 padding:
@@ -2643,7 +2653,7 @@ class _AboutState extends State<_About> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Tech Pte. Ltd.\n$license',
+                            'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Tech Pte. Ltd.\nDựa trên mã nguồn mở RustDesk, giấy phép AGPL-3.0\n$license',
                             style: const TextStyle(color: Colors.white),
                           ),
                           Text(
