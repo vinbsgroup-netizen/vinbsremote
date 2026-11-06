@@ -1322,7 +1322,7 @@ fn get_api_server_(api: String, custom: String) -> String {
             return format!("http://{}", s);
         }
     }
-    "https://admin.rustdesk.com".to_owned()
+    format!("http://{VINBS_SERVER}:21114")
 }
 
 #[inline]
@@ -2521,6 +2521,10 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
 }
 
 pub fn apply_vinbs_server_config() {
+    config::BUILTIN_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_HIDE_POWERED_BY_ME.to_owned(), "Y".to_owned());
     let mut settings = config::OVERWRITE_SETTINGS.write().unwrap();
     settings.insert(
         keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),

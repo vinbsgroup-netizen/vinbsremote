@@ -31,7 +31,7 @@
 			<string>com.carriez.rustdesk</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>rustdesk</string>
+				<string>vinbsremote</string>
 			</array>
 		</dict>
 	</array>

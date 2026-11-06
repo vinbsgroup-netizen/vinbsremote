@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=VinBS Remote Desktop
 NoDisplay=true
-MimeType=x-scheme-handler/rustdesk;
+MimeType=x-scheme-handler/vinbsremote;
 TryExec=rustdesk
 Exec=rustdesk %u
 Icon=rustdesk
