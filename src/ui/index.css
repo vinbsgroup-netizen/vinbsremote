@@ -439,3 +439,70 @@ textarea.grey-text {
         font-size: 1em;
     }
 }
+
+.home-logo {
+    width: 120px;
+    height: 44px;
+}
+
+.home-cards {
+    flow: horizontal;
+    border-spacing: 1.6em;
+    width: *;
+}
+
+.home-card {
+    @CARD;
+    width: *;
+    height: *;
+}
+
+.home-card-title {
+    color: #00a49d;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.home-card .your-desktop {
+    border-left-color: #00a49d;
+}
+
+.home-card input.outline-focus:focus {
+    outline: #00a49d solid 3px;
+}
+
+.home-actions {
+    flow: vertical;
+    border-spacing: 0.6em;
+}
+
+.home-card button.button {
+    width: *;
+    height: 2.4em;
+    background: #008f89;
+    border-color: #008f89;
+}
+
+.home-card button.button:hover {
+    background: #00a49d;
+    border-color: #00a49d;
+}
+
+.home-card button.outline,
+.home-card button.outline:hover {
+    background: transparent;
+    color: color(text);
+    border-color: color(border);
+}
+
+.home-card button.outline:hover {
+    border-color: #00a49d;
+}
+
+.right-content > div.install-me,
+.right-content > div.trust-me {
+    margin-top: 0;
+    padding: 1em;
+    border-radius: 1em;
+    background: linear-gradient(left, #00a49d, #008f89);
+}

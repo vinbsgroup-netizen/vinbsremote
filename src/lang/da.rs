@@ -825,5 +825,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Renew trust", "Forny tillid"),
         ("install-directory-not-empty-tip", "Den valgte mappe er ikke tom. Installationen kan slette eksisterende data. Overvej at vælge en anden mappe."),
         ("Request approval", "Anmod om godkendelse"),
+        ("Allow remote control", ""),
+        ("Control another computer", ""),
+        ("Partner ID", ""),
     ].iter().cloned().collect();
 }

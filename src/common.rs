@@ -2539,8 +2539,19 @@ pub fn apply_vinbs_server_config() {
     );
 }
 
+// A default rather than an overwrite, so a language picked in the menu still wins.
+#[cfg(windows)]
+fn apply_vinbs_default_language() {
+    config::DEFAULT_LOCAL_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_LANGUAGE.to_owned(), "vi".to_owned());
+}
+
 pub fn load_custom_client() {
     apply_vinbs_server_config();
+    #[cfg(windows)]
+    apply_vinbs_default_language();
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());

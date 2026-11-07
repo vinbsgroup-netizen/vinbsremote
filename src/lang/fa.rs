@@ -825,5 +825,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Renew trust", "تمدید اعتماد"),
         ("install-directory-not-empty-tip", "پوشه انتخاب‌شده خالی نیست. نصب ممکن است داده‌های موجود را حذف کند. بهتر است پوشه دیگری انتخاب کنید."),
         ("Request approval", "درخواست تأیید"),
+        ("Allow remote control", ""),
+        ("Control another computer", ""),
+        ("Partner ID", ""),
     ].iter().cloned().collect();
 }

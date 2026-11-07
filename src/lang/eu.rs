@@ -825,5 +825,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Renew trust", "Berritu konfiantza"),
         ("install-directory-not-empty-tip", "Hautatutako karpeta ez dago hutsik. Instalazioak lehendik dauden datuak ezaba ditzake. Beste karpeta bat aukeratzea gomendatzen da."),
         ("Request approval", "Eskatu onespena"),
+        ("Allow remote control", ""),
+        ("Control another computer", ""),
+        ("Partner ID", ""),
     ].iter().cloned().collect();
 }

@@ -825,5 +825,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Renew trust", "Etibarı yenilə"),
         ("install-directory-not-empty-tip", "Seçilmiş qovluq boş deyil. Quraşdırma mövcud məlumatları silə bilər. Başqa qovluq seçməyiniz tövsiyə olunur."),
         ("Request approval", "Təsdiq istə"),
+        ("Allow remote control", ""),
+        ("Control another computer", ""),
+        ("Partner ID", ""),
     ].iter().cloned().collect();
 }
