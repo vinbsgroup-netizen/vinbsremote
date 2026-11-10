@@ -1,0 +1,144 @@
+# Builds the VinBS Remote Desktop .dmg for macOS (Intel build, runs on Apple Silicon through Rosetta)
+# and publishes it to the macos-latest pre-release.
+# The build steps follow build-for-macOS (x86_64) in flutter-build.yml; keep the pinned versions in sync.
+# The app is unsigned: no Developer ID or notarization secrets are used here.
+name: VinBS macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android-build
+
+permissions:
+  contents: write
+
+# A slower run of an older commit must not finish last and overwrite a newer package.
+concurrency:
+  group: vinbs-macos
+  cancel-in-progress: true
+
+env:
+  MAC_RUST_VERSION: "1.81" # 1.81 is required for macOS, cidre needs it
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  VERSION: "1.5.1"
+
+jobs:
+  generate-bridge:
+    uses: ./.github/workflows/bridge.yml
+
+  build-macos:
+    needs: [generate-bridge]
+    if: ${{ !cancelled() }}
+    name: build x86_64 dmg
+    runs-on: macos-15-intel
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install build runtime
+        run: |
+          brew install llvm create-dmg nasm yasm
+          if ! command -v pkg-config &>/dev/null; then
+            brew install pkg-config
+          fi
+
+      - name: Install NASM 2.16.x
+        # Not `brew install nasm`: that installs NASM 3.x, which drops options aom needs.
+        run: |
+          wget https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/macosx/nasm-2.16.03-macosx.zip
+          unzip nasm-2.16.03-macosx.zip
+          sudo cp nasm-2.16.03/nasm /usr/local/bin/nasm
+          nasm --version
+
+      - name: Install flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Patch flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+
+      - name: Workaround for flutter issue
+        shell: bash
+        run: |
+          cd "$(dirname "$(which flutter)")"
+          # https://github.com/flutter/flutter/issues/133533
+          sed -i -e 's/_setFramesEnabledState(false);/\/\/_setFramesEnabledState(false);/g' ../packages/flutter/lib/src/scheduler/binding.dart
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.MAC_RUST_VERSION }}
+          targets: x86_64-apple-darwin
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: vinbs-macos
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet x64-osx \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+              echo ""
+            done
+            exit 1
+          fi
+
+      - name: Build app
+        run: |
+          ./build.py --flutter --hwcodec --unix-file-copy-paste
+
+      - name: Create unsigned dmg
+        run: |
+          CREATE_DMG="$(command -v create-dmg)"
+          CREATE_DMG="$(readlink -f "$CREATE_DMG")"
+          sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
+          APP=./flutter/build/macos/Build/Products/Release/RustDesk.app
+          test -d "$APP"
+          reported_version="$("$APP/Contents/MacOS/RustDesk" --version)"
+          echo "Built version: $reported_version"
+          create-dmg --volname "VinBS Remote Desktop" --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 "vinbs-remote-desktop-${VERSION}-x86_64.dmg" "$APP"
+          test -f "vinbs-remote-desktop-${VERSION}-x86_64.dmg"
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Publish DMG package
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          prerelease: true
+          tag_name: macos-latest
+          files: vinbs-remote-desktop-${{ env.VERSION }}-x86_64.dmg
